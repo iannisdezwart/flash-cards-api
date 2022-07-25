@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"target": "es5",
+		"lib": [
+			"esnext"
+		],
+		"moduleResolution": "node",
+		"module": "esnext",
+		"allowSyntheticDefaultImports": true,
+		"downlevelIteration": true
+	}
+}

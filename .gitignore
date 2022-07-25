@@ -1,0 +1,6 @@
+databases/*.json
+node_modules/
+
+*.js
+.env
+.jwtsecret
