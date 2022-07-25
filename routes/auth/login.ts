@@ -1,6 +1,6 @@
 import { createToken, readJSONBody } from '@iannisz/node-api-kit'
-import { api } from '../api.js'
-import { getUser } from '../repositories/users.js'
+import { api } from '../../api.js'
+import { getUser } from '../../repositories/users.js'
 import { compareSync } from 'bcrypt'
 
 interface LoginDetails
@@ -11,6 +11,8 @@ interface LoginDetails
 
 api.post('/login', async (req, res) =>
 {
+	res.setHeader('Access-Control-Allow-Origin', '*')
+
 	const loginDetails = await readJSONBody(req) as LoginDetails
 	const user = getUser(loginDetails.username)
 
@@ -39,6 +41,8 @@ api.post('/login', async (req, res) =>
 		exp: Math.floor(Date.now() / 1000) + ONE_DAY,
 		username: user.username
 	})
+
+	console.log(`${ user.username }: [ POST /login ]`)
 
 	res.end(JSON.stringify({
 		token

@@ -1,15 +1,11 @@
-import { authenticated, readJSONBody } from '@iannisz/node-api-kit'
-import { api } from '../api.js'
-import { getAllSetsForUser } from '../repositories/sets.js'
-
-interface RequestPayload
-{
-	token: string
-}
+import { authenticated } from '@iannisz/node-api-kit'
+import { api } from '../../api.js'
+import { getAllSetsForUser } from '../../repositories/sets.js'
 
 api.get('/sets', async (req, res) =>
 {
-	const { token } = await readJSONBody(req) as RequestPayload
+	res.setHeader('Access-Control-Allow-Origin', '*')
+	const token = req.headers.authorization as string
 
 	if (!authenticated(token))
 	{
@@ -22,6 +18,7 @@ api.get('/sets', async (req, res) =>
 	}
 
 	const { username } = authenticated(token) as { username: string }
+	console.log(`${ username }: [ GET /sets ]`)
 
 	res.end(JSON.stringify(getAllSetsForUser(username)))
 })

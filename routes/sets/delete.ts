@@ -1,16 +1,18 @@
 import { authenticated, readJSONBody } from '@iannisz/node-api-kit'
-import { api } from '../api.js'
-import { deleteSet, getSet } from '../repositories/sets.js'
+import { api } from '../../api.js'
+import { deleteSet, getSet } from '../../repositories/sets.js'
 
 interface RequestPayload
 {
-	token: string
 	setName: string
 }
 
 api.delete('/sets', async (req, res) =>
 {
-	const { token, setName } = await readJSONBody(req) as RequestPayload
+	res.setHeader('Access-Control-Allow-Origin', '*')
+	const token = req.headers.authorization as string
+
+	const { setName } = await readJSONBody(req) as RequestPayload
 
 	if (!authenticated(token))
 	{
@@ -23,6 +25,7 @@ api.delete('/sets', async (req, res) =>
 	}
 
 	const { username } = authenticated(token) as { username: string }
+	console.log(`${ username }: [ DELETE /sets ]`, { setName })
 
 	if (getSet(username, setName) == null)
 	{
