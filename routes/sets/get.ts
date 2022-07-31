@@ -18,7 +18,8 @@ api.get('/sets', async (req, res) =>
 	}
 
 	const { username } = authenticated(token) as { username: string }
-	console.log(`${ username }: [ GET /sets ]`)
 
-	res.end(JSON.stringify(getAllSetsForUser(username)))
+	const data = getAllSetsForUser(username)
+	res.end(JSON.stringify(data))
+	console.log(`${ username }: [ GET /sets ]`, data)
 })

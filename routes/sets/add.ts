@@ -11,8 +11,8 @@ interface Card
 interface NewSetDetails
 {
 	name: string
-	langFrom: string
-	langTo: string
+	localeFront: string
+	localeBack: string
 	cards: Card[]
 }
 
@@ -49,8 +49,8 @@ api.post('/sets', async (req, res) =>
 	addSet({
 		user: username,
 		name: body.name,
-		langFrom: body.langFrom,
-		langTo: body.langTo,
+		localeFront: body.localeFront,
+		localeBack: body.localeBack,
 		cards: body.cards
 	})
 	res.end()

@@ -42,9 +42,7 @@ api.post('/login', async (req, res) =>
 		username: user.username
 	})
 
-	console.log(`${ user.username }: [ POST /login ]`)
-
-	res.end(JSON.stringify({
-		token
-	}))
+	const data = { token }
+	res.end(JSON.stringify(data))
+	console.log(`${ user.username }: [ POST /login ]`, data)
 })

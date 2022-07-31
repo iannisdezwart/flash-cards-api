@@ -33,7 +33,6 @@ api.post('/signup', async (req, res) =>
 		hashedPassword
 	})
 
-	console.log(`${ body.username }: [ POST /signup ]`)
-
 	res.end()
+	console.log(`${ body.username }: [ POST /signup ]`)
 })

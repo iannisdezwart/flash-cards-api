@@ -12,8 +12,8 @@ export interface Set
 {
 	name: string
 	user: string
-	langFrom: string
-	langTo: string
+	localeFront: string
+	localeBack: string
 	cards: Card[]
 }
 
