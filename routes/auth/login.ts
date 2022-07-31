@@ -36,9 +36,8 @@ api.post('/login', async (req, res) =>
 		return
 	}
 
-	const ONE_DAY = 24 * 60 * 60
 	const token = createToken({
-		exp: Math.floor(Date.now() / 1000) + ONE_DAY,
+		// exp: Math.floor(Date.now() / 1000) +  24 * 60 * 60, // Valid for one day.
 		username: user.username
 	})
 

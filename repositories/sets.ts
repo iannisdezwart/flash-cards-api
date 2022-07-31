@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { reorder } from '../util/reorder.js'
 
 const DATABASE_FILE = 'databases/sets.json'
 
@@ -50,4 +51,9 @@ export const addSet = (set: Set) =>
 export const deleteSet = (username: string, setName: string) =>
 {
 	write(read().filter(set => set.user != username || set.name != setName))
+}
+
+export const reorderSets = (username: string, oldIndex: number, newIndex: number) =>
+{
+	write([ ...read().filter(set => set.user != username), ...reorder(getAllSetsForUser(username), oldIndex, newIndex) ])
 }

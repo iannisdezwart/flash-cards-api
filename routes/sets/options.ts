@@ -4,5 +4,6 @@ api.options('/sets', (_req, res) =>
 {
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	res.setHeader('Access-Control-Allow-Headers', 'Authorization')
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS, PATCH')
 	res.end()
 })
