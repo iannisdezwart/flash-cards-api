@@ -57,3 +57,33 @@ export const reorderSets = (username: string, oldIndex: number, newIndex: number
 {
 	write([ ...read().filter(set => set.user != username), ...reorder(getAllSetsForUser(username), oldIndex, newIndex) ])
 }
+
+const updateSet = (username: string, setName: string, newSet: Set) =>
+{
+	write(read().map(oldSet => oldSet.user == username && oldSet.name == setName ? newSet : oldSet))
+}
+
+const updateCards = (username: string, setName: string, newCards: Card[]) =>
+{
+	updateSet(username, setName, { ...getSet(username, setName), cards: newCards })
+}
+
+export const addCard = (username: string, setName: string, card: Card) =>
+{
+	updateCards(username, setName, [ ...getSet(username, setName).cards, card ])
+}
+
+export const deleteCard = (username: string, setName: string, cardIndex: number) =>
+{
+	updateCards(username, setName, getSet(username, setName).cards.filter((_, index) => index != cardIndex))
+}
+
+export const updateCard = (username: string, setName: string, cardIndex: number, card: Card) =>
+{
+	updateCards(username, setName, getSet(username, setName).cards.map((oldCard, index) => index == cardIndex ? card : oldCard))
+}
+
+export const reorderCards = (username: string, setName: string, oldCardIndex: number, newCardIndex: number) =>
+{
+	updateCards(username, setName, reorder(getSet(username, setName).cards, oldCardIndex, newCardIndex))
+}

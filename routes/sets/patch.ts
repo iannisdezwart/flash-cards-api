@@ -26,7 +26,7 @@ api.patch('/sets', async (req, res) =>
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
 
-	const reqPayload = await readJSONBody(req) as RequestPayload
+	const body = await readJSONBody(req) as RequestPayload
 
 	if (!authenticated(token))
 	{
@@ -40,16 +40,16 @@ api.patch('/sets', async (req, res) =>
 
 	const { username } = authenticated(token) as { username: string }
 
-	switch (reqPayload.action)
+	switch (body.action)
 	{
-	case 'reorder':
-		reorder(reqPayload, username, res)
-		return
+		case 'reorder':
+			reorder(body, username, res)
+			return
 
-	default:
-		res.statusCode = 400
-		res.end(JSON.stringify({
-			err: 'Invalid action.'
-		}))
+		default:
+			res.statusCode = 400
+			res.end(JSON.stringify({
+				err: 'Invalid action.'
+			}))
 	}
 })
