@@ -3,7 +3,7 @@ import { api } from '../../api.js'
 import { addUser, getUser } from '../../repositories/users.js'
 import { hashSync } from 'bcrypt'
 
-interface SignupDetails
+interface RequestPayload
 {
 	username: string
 	password: string
@@ -13,7 +13,31 @@ api.post('/signup', async (req, res) =>
 {
 	res.setHeader('Access-Control-Allow-Origin', '*')
 
-	const body = await readJSONBody(req) as SignupDetails
+	let body: RequestPayload
+
+	try
+	{
+		body = await readJSONBody(req)
+	}
+	catch (err)
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object.'
+		}))
+
+		return
+	}
+
+	if (body.username == null || body.password == null || typeof body.username != 'string' || typeof body.password != 'string')
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Please fill in the "username" and "password" fields as strings.'
+		}))
+
+		return
+	}
 
 	if (getUser(body.username) != null)
 	{

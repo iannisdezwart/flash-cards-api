@@ -16,7 +16,34 @@ api.post('/sets/cards', async (req, res) =>
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
 
-	const body = await readJSONBody(req) as RequestPayload
+	let body: RequestPayload
+
+	try
+	{
+		body = await readJSONBody(req)
+	}
+	catch (err)
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object.'
+		}))
+
+		return
+	}
+
+	if (body.setName == null || body.card == null || typeof body.card != 'object'
+		|| body.card.front == null || body.card.back == null
+		|| typeof body.setName != 'string' || typeof body.card.front != 'string'
+		|| typeof body.card.back != 'string')
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object with the properties: "setName" (string), "card.front" (string), "card.back" (string).'
+		}))
+
+		return
+	}
 
 	if (!authenticated(token))
 	{

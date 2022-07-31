@@ -12,7 +12,31 @@ api.delete('/sets', async (req, res) =>
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
 
-	const { setName } = await readJSONBody(req) as RequestPayload
+	let body: RequestPayload
+
+	try
+	{
+		body = await readJSONBody(req)
+	}
+	catch (err)
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object.'
+		}))
+
+		return
+	}
+
+	if (body.setName == null || typeof body.setName != 'string')
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object with the property "setName" (string).'
+		}))
+
+		return
+	}
 
 	if (!authenticated(token))
 	{
@@ -25,9 +49,9 @@ api.delete('/sets', async (req, res) =>
 	}
 
 	const { username } = authenticated(token) as { username: string }
-	console.log(`${ username }: [ DELETE /sets ]`, { setName })
+	console.log(`${ username }: [ DELETE /sets ]`, { setName: body.setName })
 
-	if (getSet(username, setName) == null)
+	if (getSet(username, body.setName) == null)
 	{
 		res.statusCode = 404
 		res.end(JSON.stringify({
@@ -37,6 +61,6 @@ api.delete('/sets', async (req, res) =>
 		return
 	}
 
-	deleteSet(username, setName)
+	deleteSet(username, body.setName)
 	res.end()
 })

@@ -13,7 +13,32 @@ api.delete('/sets/cards', async (req, res) =>
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
 
-	const body = await readJSONBody(req) as RequestPayload
+	let body: RequestPayload
+
+	try
+	{
+		body = await readJSONBody(req)
+	}
+	catch (err)
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object.'
+		}))
+
+		return
+	}
+
+	if (body.setName == null || typeof body.setName != 'string'
+		|| body.cardIndex == null || typeof body.cardIndex != 'number')
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object with the following properties: "setName" (string), "cardIndex" (number).'
+		}))
+
+		return
+	}
 
 	if (!authenticated(token))
 	{
