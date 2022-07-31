@@ -33,7 +33,17 @@ api.post('/signup', async (req, res) =>
 	{
 		res.statusCode = 400
 		res.end(JSON.stringify({
-			err: 'Please fill in the "username" and "password" fields as strings.'
+			err: 'Invalid request body. Expected a JSON object with the properties: "username" (string), "password" (string).'
+		}))
+
+		return
+	}
+
+	if (body.username == '' || body.password == '')
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Please don\'t leave the "username" and "password" fields empty.'
 		}))
 
 		return

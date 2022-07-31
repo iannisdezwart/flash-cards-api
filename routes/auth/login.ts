@@ -34,7 +34,7 @@ api.post('/login', async (req, res) =>
 	{
 		res.statusCode = 400
 		res.end(JSON.stringify({
-			err: 'Please fill in the "username" and "password" fields as strings.'
+			err: 'Invalid request body. Expected a JSON object with the properties: "username" (string), "password" (string).'
 		}))
 
 		return
