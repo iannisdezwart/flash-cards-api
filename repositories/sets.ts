@@ -7,6 +7,7 @@ interface Card
 {
 	front: string
 	back: string
+	starred: boolean
 }
 
 export interface Set

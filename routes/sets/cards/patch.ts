@@ -11,6 +11,7 @@ interface UpdateRequestPayload
 	card: {
 		front: string
 		back: string
+		starred: boolean
 	}
 }
 

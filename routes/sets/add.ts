@@ -47,6 +47,7 @@ api.post('/sets', async (req, res) =>
 
 		return
 	}
+
 	if (!authenticated(token))
 	{
 		res.statusCode = 401
@@ -75,7 +76,11 @@ api.post('/sets', async (req, res) =>
 		name: body.name,
 		localeFront: body.localeFront,
 		localeBack: body.localeBack,
-		cards: body.cards
+		cards: body.cards.map(card => ({
+			front: card.front,
+			back: card.back,
+			starred: false
+		}))
 	})
 	res.end()
 })

@@ -68,6 +68,6 @@ api.post('/sets/cards', async (req, res) =>
 		return
 	}
 
-	addCard(username, body.setName, body.card)
+	addCard(username, body.setName, { ...body.card, starred: false })
 	res.end()
 })
