@@ -1,7 +1,7 @@
 import { readJSONBody } from '@iannisz/node-api-kit'
 import { ServerResponse } from 'http'
 import { AudioConfig, AudioOutputStream, SpeechConfig, SpeechSynthesizer, VoiceInfo } from 'microsoft-cognitiveservices-speech-sdk'
-import { api } from '../../api.js'
+import { api } from '../../api'
 
 const defaultSpeechConfig = SpeechConfig.fromSubscription(process.env.AZURE_SPEECH_KEY, process.env.AZURE_SPEECH_REGION)
 const defaultSynthesiser = new SpeechSynthesizer(defaultSpeechConfig)

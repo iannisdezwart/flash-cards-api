@@ -1,11 +1,14 @@
 {
 	"compilerOptions": {
-		"target": "es5",
+		"target": "es6",
+		"module": "CommonJS",
+		"outDir": "./dist",
+		"esModuleInterop": true,
 		"lib": [
-			"esnext"
+			"esnext",
+			"dom"
 		],
 		"moduleResolution": "node",
-		"module": "esnext",
 		"allowSyntheticDefaultImports": true,
 		"downlevelIteration": true
 	}

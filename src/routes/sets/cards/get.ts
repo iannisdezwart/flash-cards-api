@@ -1,8 +1,8 @@
 import { authenticated } from '@iannisz/node-api-kit'
-import { api } from '../../api.js'
-import { getAllSetsForUser, getSet } from '../../repositories/sets.js'
+import { api } from '../../../api'
+import repos from '../../../repositories'
 
-api.get('/sets', async (req, res) =>
+api.get('/sets/cards', async (req, res) =>
 {
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
@@ -20,15 +20,17 @@ api.get('/sets', async (req, res) =>
 
 	const { username } = authenticated(token) as { username: string }
 
-	if (setName == null)
+	if (await repos.sets.get(username, setName) == null)
 	{
-		const data = getAllSetsForUser(username)
-		res.end(JSON.stringify(data))
-		console.log(`${ username }: [ GET /sets ]`, data)
+		res.statusCode = 403
+		res.end(JSON.stringify({
+			err: 'You don\'t have a set with that name.'
+		}))
+
 		return
 	}
 
-	const data = getSet(username, setName)
+	const data = await repos.cards.getAllForSet(username, setName)
 
 	if (data == null)
 	{
@@ -40,6 +42,6 @@ api.get('/sets', async (req, res) =>
 		return
 	}
 
-	console.log(`${ username }: [ GET /sets ] (${ setName })`, data)
+	console.log(`${ username }: [ GET /sets/cards ] (${ setName })`, data)
 	res.end(JSON.stringify(data))
 })

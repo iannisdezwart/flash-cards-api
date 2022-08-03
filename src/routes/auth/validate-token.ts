@@ -1,5 +1,5 @@
 import { authenticated } from '@iannisz/node-api-kit'
-import { api } from '../../api.js'
+import { api } from '../../api'
 
 api.get('/validate-token', (req, res) =>
 {

@@ -1,6 +1,7 @@
 import { authenticated, readJSONBody } from '@iannisz/node-api-kit'
-import { api } from '../../api.js'
-import { addSet, getSet } from '../../repositories/sets.js'
+import { api } from '../../api'
+import repos from '../../repositories'
+
 
 interface Card
 {
@@ -61,7 +62,7 @@ api.post('/sets', async (req, res) =>
 	const { username } = authenticated(token) as { username: string }
 	console.log(`${ username }: [ POST /sets ]`, body)
 
-	if (getSet(username, body.name) != null)
+	if (await repos.sets.get(username, body.name) != null)
 	{
 		res.statusCode = 403
 		res.end(JSON.stringify({
@@ -71,16 +72,23 @@ api.post('/sets', async (req, res) =>
 		return
 	}
 
-	addSet({
+	await repos.sets.add({
 		user: username,
 		name: body.name,
 		localeFront: body.localeFront,
-		localeBack: body.localeBack,
-		cards: body.cards.map(card => ({
+		localeBack: body.localeBack
+	})
+
+	// TODO: Figure out if there is a way to insert multiple cards at once
+	// safely, dynamically and efficiently.
+	for (const card of body.cards)
+	{
+		await repos.cards.add(username, body.name, {
 			front: card.front,
 			back: card.back,
 			starred: false
-		}))
-	})
+		})
+	}
+
 	res.end()
 })

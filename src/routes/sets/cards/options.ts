@@ -1,6 +1,6 @@
-import { api } from '../../api.js'
+import { api } from '../../../api'
 
-api.options('/sets', (_req, res) =>
+api.options('/sets/cards', (_req, res) =>
 {
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	res.setHeader('Access-Control-Allow-Headers', 'Authorization, X-Set-Name')

@@ -1,6 +1,6 @@
 import { authenticated, readJSONBody } from '@iannisz/node-api-kit'
-import { api } from '../../../api.js'
-import { addCard, getSet } from '../../../repositories/sets.js'
+import { api } from '../../../api'
+import repos from '../../../repositories'
 
 interface RequestPayload
 {
@@ -58,7 +58,7 @@ api.post('/sets/cards', async (req, res) =>
 	const { username } = authenticated(token) as { username: string }
 	console.log(`${ username }: [ POST /sets/cards ]`, body)
 
-	if (getSet(username, body.setName) == null)
+	if (await repos.sets.get(username, body.setName) == null)
 	{
 		res.statusCode = 403
 		res.end(JSON.stringify({
@@ -68,6 +68,6 @@ api.post('/sets/cards', async (req, res) =>
 		return
 	}
 
-	addCard(username, body.setName, { ...body.card, starred: false })
+	await repos.cards.add(username, body.setName, { ...body.card, starred: false })
 	res.end()
 })

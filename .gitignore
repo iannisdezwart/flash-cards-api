@@ -1,6 +1,6 @@
 databases/*.json
 node_modules/
+dist/
 
-*.js
 .env
 .jwtsecret

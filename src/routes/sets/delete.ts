@@ -1,6 +1,6 @@
 import { authenticated, readJSONBody } from '@iannisz/node-api-kit'
-import { api } from '../../api.js'
-import { deleteSet, getSet } from '../../repositories/sets.js'
+import { api } from '../../api'
+import repos from '../../repositories'
 
 interface RequestPayload
 {
@@ -51,7 +51,7 @@ api.delete('/sets', async (req, res) =>
 	const { username } = authenticated(token) as { username: string }
 	console.log(`${ username }: [ DELETE /sets ]`, { setName: body.setName })
 
-	if (getSet(username, body.setName) == null)
+	if (await repos.sets.get(username, body.setName) == null)
 	{
 		res.statusCode = 404
 		res.end(JSON.stringify({
@@ -61,6 +61,6 @@ api.delete('/sets', async (req, res) =>
 		return
 	}
 
-	deleteSet(username, body.setName)
+	await repos.sets.remove(username, body.setName)
 	res.end()
 })

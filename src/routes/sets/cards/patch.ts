@@ -1,7 +1,7 @@
 import { authenticated, readJSONBody } from '@iannisz/node-api-kit'
 import { ServerResponse } from 'http'
-import { api } from '../../../api.js'
-import { updateCard, getSet, reorderCards } from '../../../repositories/sets.js'
+import { api } from '../../../api'
+import repos from '../../../repositories'
 
 interface UpdateRequestPayload
 {
@@ -25,7 +25,7 @@ interface ReorderRequestPayload
 
 type RequestPayload = UpdateRequestPayload | ReorderRequestPayload
 
-const update = (body: UpdateRequestPayload, username: string, res: ServerResponse) =>
+const update = async (body: UpdateRequestPayload, username: string, res: ServerResponse) =>
 {
 	if (body.setName == null || typeof body.setName != 'string'
 		|| body.cardIndex == null || typeof body.cardIndex != 'number'
@@ -41,11 +41,11 @@ const update = (body: UpdateRequestPayload, username: string, res: ServerRespons
 		return
 	}
 
-	updateCard(username, body.setName, body.cardIndex, body.card)
+	await repos.cards.update(username, body.setName, body.cardIndex, body.card)
 	res.end()
 }
 
-const reorder = (body: ReorderRequestPayload, username: string, res: ServerResponse) =>
+const reorder = async (body: ReorderRequestPayload, username: string, res: ServerResponse) =>
 {
 	if (body.setName == null || typeof body.setName != 'string'
 		|| body.oldCardIndex == null || typeof body.oldCardIndex != 'number'
@@ -59,7 +59,7 @@ const reorder = (body: ReorderRequestPayload, username: string, res: ServerRespo
 		return
 	}
 
-	reorderCards(username, body.setName, body.oldCardIndex, body.newCardIndex)
+	await repos.cards.reorder(username, body.setName, body.oldCardIndex, body.newCardIndex)
 	res.end()
 }
 
@@ -107,7 +107,7 @@ api.patch('/sets/cards', async (req, res) =>
 	const { username } = authenticated(token) as { username: string }
 	console.log(`${ username }: [ PATCH /sets/cards ]`, body)
 
-	if (getSet(username, body.setName) == null)
+	if (await repos.sets.get(username, body.setName) == null)
 	{
 		res.statusCode = 403
 		res.end(JSON.stringify({
@@ -120,11 +120,11 @@ api.patch('/sets/cards', async (req, res) =>
 	switch (body.action)
 	{
 		case 'reorder':
-			reorder(body, username, res)
+			await reorder(body, username, res)
 			return
 
 		case 'update':
-			update(body, username, res)
+			await update(body, username, res)
 			return
 
 		default:

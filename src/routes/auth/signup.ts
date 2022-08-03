@@ -1,6 +1,6 @@
 import { readJSONBody } from '@iannisz/node-api-kit'
-import { api } from '../../api.js'
-import { addUser, getUser } from '../../repositories/users.js'
+import { api } from '../../api'
+import repos from '../../repositories'
 import { hashSync } from 'bcrypt'
 
 interface RequestPayload
@@ -49,7 +49,7 @@ api.post('/signup', async (req, res) =>
 		return
 	}
 
-	if (getUser(body.username) != null)
+	if (await repos.users.get(body.username) != null)
 	{
 		res.statusCode = 403
 		res.end(JSON.stringify({
@@ -62,7 +62,7 @@ api.post('/signup', async (req, res) =>
 	const saltRounds = 10
 	const hashedPassword = hashSync(body.password, saltRounds)
 
-	addUser({
+	await repos.users.add({
 		username: body.username,
 		hashedPassword
 	})

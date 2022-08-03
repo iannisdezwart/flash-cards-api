@@ -1,7 +1,7 @@
 import { authenticated, readJSONBody } from '@iannisz/node-api-kit'
 import { ServerResponse } from 'http'
-import { api } from '../../api.js'
-import { reorderSets } from '../../repositories/sets.js'
+import { api } from '../../api'
+import repos from '../../repositories'
 
 interface ReorderRequestPayload
 {
@@ -23,7 +23,7 @@ const reorder = async (req: ReorderRequestPayload, username: string, res: Server
 		}))
 	}
 
-	reorderSets(username, req.oldIndex, req.newIndex)
+	await repos.sets.reorder(username, req.oldIndex, req.newIndex)
 	res.end()
 
 	console.log(`${ username }: [ PATCH /sets ]`, req)

@@ -1,6 +1,6 @@
 import { createToken, readJSONBody } from '@iannisz/node-api-kit'
-import { api } from '../../api.js'
-import { getUser } from '../../repositories/users.js'
+import { api } from '../../api'
+import repos from '../../repositories'
 import { compareSync } from 'bcrypt'
 
 interface RequestPayload
@@ -40,7 +40,7 @@ api.post('/login', async (req, res) =>
 		return
 	}
 
-	const user = getUser(body.username)
+	const user = await repos.users.get(body.username)
 
 	if (user == null)
 	{
