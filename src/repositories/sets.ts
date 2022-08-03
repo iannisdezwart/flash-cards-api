@@ -1,6 +1,15 @@
 import { pool } from '../database'
 
-export interface Set
+export interface SetOutput
+{
+	id: number
+	name: string
+	user: string
+	localeFront: string
+	localeBack: string
+}
+
+export interface SetInput
 {
 	name: string
 	user: string
@@ -8,7 +17,7 @@ export interface Set
 	localeBack: string
 }
 
-export const get = async (username: string, setName: string) =>
+export const get = async (username: string, setName: string): Promise<SetOutput> =>
 {
 	const res = await pool.query(`
 		SELECT * FROM sets
@@ -26,14 +35,15 @@ export const get = async (username: string, setName: string) =>
 	}
 
 	return {
+		id: res.rows[0].id,
 		name: setName,
 		user: username,
 		localeFront: res.rows[0].locale_front,
 		localeBack: res.rows[0].locale_back
-	} as Set
+	}
 }
 
-export const getAllForUser = async (username: string) =>
+export const getAllForUser = async (username: string): Promise<SetOutput[]> =>
 {
 	const res = await pool.query(`
 		SELECT * FROM sets
@@ -46,14 +56,15 @@ export const getAllForUser = async (username: string) =>
 	console.log(`[DB] Got all sets for user ${ username }`, res.rows)
 
 	return res.rows.map(row => ({
+		id: row.id,
 		name: row.name,
 		user: username,
 		localeFront: row.locale_front,
 		localeBack: row.locale_back
-	} as Set))
+	}))
 }
 
-export const add = async (set: Set) =>
+export const add = async (set: SetInput) =>
 {
 	const userId = `(
 		SELECT id FROM users

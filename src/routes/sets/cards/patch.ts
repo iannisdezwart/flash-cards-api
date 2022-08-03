@@ -7,7 +7,7 @@ interface UpdateRequestPayload
 {
 	action: 'update'
 	setName: string
-	cardIndex: number
+	cardId: number
 	card: {
 		front: string
 		back: string
@@ -19,8 +19,8 @@ interface ReorderRequestPayload
 {
 	action: 'reorder'
 	setName: string
-	oldCardIndex: number
-	newCardIndex: number
+	cardId: number
+	insertAtId: number
 }
 
 type RequestPayload = UpdateRequestPayload | ReorderRequestPayload
@@ -28,7 +28,7 @@ type RequestPayload = UpdateRequestPayload | ReorderRequestPayload
 const update = async (body: UpdateRequestPayload, username: string, res: ServerResponse) =>
 {
 	if (body.setName == null || typeof body.setName != 'string'
-		|| body.cardIndex == null || typeof body.cardIndex != 'number'
+		|| body.cardId == null || typeof body.cardId != 'number'
 		|| body.card == null || typeof body.card != 'object'
 		|| body.card.front == null || typeof body.card.front != 'string'
 		|| body.card.back == null || typeof body.card.back != 'string')
@@ -41,15 +41,15 @@ const update = async (body: UpdateRequestPayload, username: string, res: ServerR
 		return
 	}
 
-	await repos.cards.update(username, body.setName, body.cardIndex, body.card)
+	await repos.cards.update(username, body.setName, body.cardId, body.card)
 	res.end()
 }
 
 const reorder = async (body: ReorderRequestPayload, username: string, res: ServerResponse) =>
 {
 	if (body.setName == null || typeof body.setName != 'string'
-		|| body.oldCardIndex == null || typeof body.oldCardIndex != 'number'
-		|| body.newCardIndex == null || typeof body.newCardIndex != 'number')
+		|| body.cardId == null || typeof body.cardId != 'number'
+		|| body.insertAtId == null || typeof body.insertAtId != 'number')
 	{
 		res.statusCode = 400
 		res.end(JSON.stringify({
@@ -59,7 +59,7 @@ const reorder = async (body: ReorderRequestPayload, username: string, res: Serve
 		return
 	}
 
-	await repos.cards.reorder(username, body.setName, body.oldCardIndex, body.newCardIndex)
+	await repos.cards.reorder(username, body.setName, body.cardId, body.insertAtId)
 	res.end()
 }
 

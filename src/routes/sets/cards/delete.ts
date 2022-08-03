@@ -5,7 +5,7 @@ import repos from '../../../repositories'
 interface RequestPayload
 {
 	setName: string
-	cardIndex: number
+	cardId: number
 }
 
 api.delete('/sets/cards', async (req, res) =>
@@ -30,11 +30,11 @@ api.delete('/sets/cards', async (req, res) =>
 	}
 
 	if (body.setName == null || typeof body.setName != 'string'
-		|| body.cardIndex == null || typeof body.cardIndex != 'number')
+		|| body.cardId == null || typeof body.cardId != 'number')
 	{
 		res.statusCode = 400
 		res.end(JSON.stringify({
-			err: 'Invalid request body. Expected a JSON object with the following properties: "setName" (string), "cardIndex" (number).'
+			err: 'Invalid request body. Expected a JSON object with the following properties: "setName" (string), "cardId" (number).'
 		}))
 
 		return
@@ -63,6 +63,6 @@ api.delete('/sets/cards', async (req, res) =>
 		return
 	}
 
-	await repos.cards.remove(username, body.setName, body.cardIndex)
+	await repos.cards.remove(username, body.setName, body.cardId)
 	res.end()
 })

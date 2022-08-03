@@ -68,6 +68,6 @@ api.post('/sets/cards', async (req, res) =>
 		return
 	}
 
-	await repos.cards.add(username, body.setName, { ...body.card, starred: false })
-	res.end()
+	const data = await repos.cards.add(username, body.setName, { ...body.card, starred: false })
+	res.end(JSON.stringify(data))
 })
