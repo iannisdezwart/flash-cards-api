@@ -46,7 +46,7 @@ export const get = async (username: string, setName: string): Promise<SetOutput>
 export const getAllForUser = async (username: string): Promise<SetOutput[]> =>
 {
 	const res = await pool.query(`
-		SELECT id, locale_front, locale_back FROM sets
+		SELECT id, name, locale_front, locale_back FROM sets
 			WHERE user_id = (
 				SELECT id FROM users WHERE username = $1
 			)

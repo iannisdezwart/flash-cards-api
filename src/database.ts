@@ -85,6 +85,7 @@ const databaseMigrations: ((pool: Pool) => Promise<void>)[] = [
 		await pool.query(`ALTER TABLE cards ADD COLUMN revision_level INTEGER DEFAULT 0;`)
 		await pool.query(`ALTER TABLE cards ADD COLUMN last_revision INTEGER DEFAULT 0;`)
 		await pool.query(`CREATE INDEX cards_last_revision_index ON cards(last_revision);`)
+		await pool.query(`ALTER TABLE cards ADD COLUMN times_revised INTEGER DEFAULT 0;`)
 	}
 ]
 

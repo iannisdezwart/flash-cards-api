@@ -15,6 +15,15 @@ export interface CardInput
 	starred: boolean
 }
 
+export interface CardLearnOutput
+{
+	front: string
+	back: string
+	starred: boolean
+	knowledgeLevel: number
+	timesRevised: number
+}
+
 export const getAllForSet = async (username: string, setName: string): Promise<CardOutput[]> =>
 {
 	const setId = `(
@@ -232,9 +241,10 @@ export const reorder = async (username: string, setName: string, cardId: number,
 
 		const res3 = await pool.query(`
 			UPDATE cards
-				SET pos = $1
-				WHERE id = $2;`,
-			[ newCardPos, cardId ])
+				SET pos = $3
+				WHERE set_id = ${ setId }
+				AND id = $4;`,
+			[ username, setName, newCardPos, cardId ])
 
 		console.log(`[DB] Moved card ${ cardId } to ${ newCardPos }`, res3)
 
@@ -244,5 +254,98 @@ export const reorder = async (username: string, setName: string, cardId: number,
 	{
 		await pool.query(`ROLLBACK;`)
 		throw err
+	}
+}
+
+export const getCardsToLearn = async (username: string, setName: string, numCards: number): Promise<CardLearnOutput[]> =>
+{
+	const setId = `(
+		SELECT id FROM sets
+			WHERE user_id = (
+				SELECT id FROM users WHERE username = $1
+			)
+			AND name = $2
+	)`
+	const maxLastRevisionSub = `(
+		SELECT MAX(last_revision) FROM cards
+			WHERE set_id = ${ setId }
+	)`
+	const maxLastRevision = `(
+		SELECT
+			CASE WHEN ${ maxLastRevisionSub } IS NULL THEN 0
+			ELSE ${ maxLastRevisionSub }
+		END
+	)`
+	const numCardsInSet = `(
+		SELECT COUNT(*) FROM cards
+	)`
+	const factor = 0.3
+	const res = await pool.query(`
+		SELECT id, front, back, starred, times_revised,
+				( revision_level * EXP(-1 * (${ maxLastRevision } - last_revision)
+					/ (${ factor } * ${ numCardsInSet })) )
+				AS knowledge_level
+		FROM cards
+			WHERE set_id = ${ setId }
+		ORDER BY knowledge_level ASC
+		LIMIT $3;`,
+		[ username, setName, numCards ])
+
+	console.log(`[DB] Got ${ numCards } cards to learn from set ${ setName }`, res)
+
+	return res.rows.map(row => ({
+		id: row.id,
+		front: row.front,
+		back: row.back,
+		starred: row.starred,
+		timesRevised: row.times_revised,
+		knowledgeLevel: +row.knowledge_level
+	}))
+}
+
+export const updateCardRevision = async (username: string, setName: string, cardId: number, answer: 'correct' | 'incorrect') =>
+{
+	const setId = `(
+		SELECT id FROM sets
+			WHERE user_id = (
+				SELECT id FROM users WHERE username = $1
+			)
+			AND name = $2
+	)`
+	const maxLastRevisionSub = `(
+		SELECT MAX(last_revision) FROM cards
+			WHERE set_id = ${ setId }
+	)`
+	const nextLastRevisionCount = `(
+		SELECT
+			CASE WHEN ${ maxLastRevisionSub } IS NULL THEN 0
+			ELSE ${ maxLastRevisionSub } + 1
+		END
+	)`
+
+	if (answer == 'correct')
+	{
+		const res = await pool.query(`
+			UPDATE cards
+				SET last_revision = ${ nextLastRevisionCount },
+					revision_level = revision_level + 1,
+					times_revised = times_revised + 1
+				WHERE set_id = ${ setId }
+				AND id = $3;`,
+			[ username, setName, cardId ])
+
+		console.log(`[DB] Incremented revision level for card ${ cardId } in set ${ setName }`, res)
+	}
+	else
+	{
+		const res = await pool.query(`
+			UPDATE cards
+				SET revision_level = revision_level - 1,
+					times_revised = times_revised + 1
+				WHERE set_id = ${ setId }
+				AND id = $3;`,
+			[ username, setName, cardId ])
+
+		console.log(`[DB] Decremented revision level for card ${ cardId } in set ${ setName }`, res)
 	}
 }
