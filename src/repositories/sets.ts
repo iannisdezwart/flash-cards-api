@@ -17,7 +17,7 @@ export interface SetInput
 	localeBack: string
 }
 
-export const get = async (username: string, setName: string): Promise<SetOutput> =>
+export const get = async (username: string, setName: string): Promise<SetOutput | null> =>
 {
 	const res = await pool.query(`
 		SELECT id, locale_front, locale_back FROM sets

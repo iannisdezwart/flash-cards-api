@@ -1,9 +1,8 @@
-import { readJSONBody } from '@iannisz/node-api-kit'
 import { ServerResponse } from 'http'
-import { AudioConfig, AudioOutputStream, SpeechConfig, SpeechSynthesizer, VoiceInfo } from 'microsoft-cognitiveservices-speech-sdk'
+import { SpeechConfig, SpeechSynthesizer, VoiceInfo } from 'microsoft-cognitiveservices-speech-sdk'
 import { api } from '../../api'
 
-const defaultSpeechConfig = SpeechConfig.fromSubscription(process.env.AZURE_SPEECH_KEY, process.env.AZURE_SPEECH_REGION)
+const defaultSpeechConfig = SpeechConfig.fromSubscription(process.env.AZURE_SPEECH_KEY!, process.env.AZURE_SPEECH_REGION!)
 const defaultSynthesiser = new SpeechSynthesizer(defaultSpeechConfig)
 let allVoices: VoiceInfo[]
 
@@ -28,7 +27,7 @@ const getVoiceName = async (locale: string, gender: 'male' | 'female') =>
 
 const speak = (voiceName: string, text: string, res: ServerResponse) =>
 {
-	const speechConfig = SpeechConfig.fromSubscription(process.env.AZURE_SPEECH_KEY, process.env.AZURE_SPEECH_REGION)
+	const speechConfig = SpeechConfig.fromSubscription(process.env.AZURE_SPEECH_KEY!, process.env.AZURE_SPEECH_REGION!)
 	speechConfig.speechSynthesisVoiceName = voiceName
 
 	const synthesiser = new SpeechSynthesizer(speechConfig)
@@ -49,7 +48,7 @@ api.get('/tts/speak', async (req, res) =>
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	res.setHeader('Content-Type', 'audio/wav')
 
-	const url = new URL(req.url, 'http://localhost')
+	const url = new URL(req.url || '', 'http://localhost')
 	const locale = url.searchParams.get('locale')
 	const text = url.searchParams.get('text')
 	const gender = url.searchParams.get('gender') || 'male'
@@ -60,6 +59,8 @@ api.get('/tts/speak', async (req, res) =>
 		res.end(JSON.stringify({
 			err: 'Please provide a "locale" and a "text" search parameter.'
 		}))
+
+		return
 	}
 
 	if (gender != 'male' && gender != 'female')

@@ -8,8 +8,10 @@
 			"esnext",
 			"dom"
 		],
+		"strict": true,
 		"moduleResolution": "node",
 		"allowSyntheticDefaultImports": true,
-		"downlevelIteration": true
+		"downlevelIteration": true,
+		"skipLibCheck": true
 	}
 }

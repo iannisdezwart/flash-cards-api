@@ -15,11 +15,29 @@ export interface CardInput
 	starred: boolean
 }
 
-export interface CardLearnOutput
+export interface MultipleChoiceLearnItem
 {
-	front: string
-	back: string
+	type: 'multiple-choice'
+	cardId: number
 	starred: boolean
+	direction: 'front' | 'back'
+	question: string
+	choices: string[]
+}
+
+export interface FillInTheBlankLearnItem
+{
+	type: 'fill-in-the-blank'
+	starred: boolean
+	cardId: number
+	direction: 'front' | 'back'
+	question: string
+}
+
+export type LearnItem = MultipleChoiceLearnItem | FillInTheBlankLearnItem
+
+export interface DetailedCardOutput extends CardOutput
+{
 	knowledgeLevel: number
 	timesRevised: number
 }
@@ -173,6 +191,25 @@ export const update = async (username: string, setName: string, cardId: number, 
 	console.log(`[DB] Updated card ${ cardId } in set ${ setName }`, card, res)
 }
 
+export const setStarred = async (username: string, setName: string, cardId: number, starred: boolean) =>
+{
+	const setId = `(
+		SELECT id FROM sets
+			WHERE user_id = (
+				SELECT id FROM users WHERE username = $1
+			)
+			AND name = $2
+	)`
+	const res = await pool.query(`
+		UPDATE cards
+			SET starred = $3
+			WHERE set_id = ${ setId }
+			AND id = $4;`,
+		[ username, setName, starred, cardId ])
+
+	console.log(`[DB] Set star for card ${ cardId } in set ${ setName }`, starred, res)
+}
+
 export const reorder = async (username: string, setName: string, cardId: number, insertAtId: number) =>
 {
 	try
@@ -257,7 +294,7 @@ export const reorder = async (username: string, setName: string, cardId: number,
 	}
 }
 
-export const getCardsToLearn = async (username: string, setName: string, numCards: number): Promise<CardLearnOutput[]> =>
+export const getCardsToLearn = async (username: string, setName: string, numCards: number): Promise<LearnItem[]> =>
 {
 	const setId = `(
 		SELECT id FROM sets
@@ -293,17 +330,68 @@ export const getCardsToLearn = async (username: string, setName: string, numCard
 
 	console.log(`[DB] Got ${ numCards } cards to learn from set ${ setName }`, res)
 
-	return res.rows.map(row => ({
-		id: row.id,
-		front: row.front,
-		back: row.back,
-		starred: row.starred,
-		timesRevised: row.times_revised,
-		knowledgeLevel: +row.knowledge_level
+	const cards = res.rows.map(row => ({
+		id: row.id as number,
+		front: row.front as string,
+		back: row.back as string,
+		starred: row.starred as boolean,
+		timesRevised: row.times_revised as number,
+		knowledgeLevel: +row.knowledge_level as number,
 	}))
+
+	const otherMcChoices = (id: number, direction: 'front' | 'back') => cards
+		.filter(card => card.id != id)
+		.map(card => direction == 'front' ? card.back : card.front)
+		.slice(0, 3)
+
+	const mcChoices = (card: typeof cards[number], direction: 'front' | 'back') => [
+		direction == 'front' ? card.back : card.front,
+		...otherMcChoices(card.id, direction),
+	].sort(() => Math.random() - 0.5)
+
+	const multipleChoiceQuestionsFront = cards.map<MultipleChoiceLearnItem>(card => ({
+		type: 'multiple-choice',
+		cardId: card.id,
+		starred: card.starred,
+		direction: 'front',
+		question: card.front,
+		choices: mcChoices(card, 'front'),
+	}))
+
+	const fillInTheBlankQuestionsFront = cards.map<FillInTheBlankLearnItem>(card => ({
+		type: 'fill-in-the-blank',
+		cardId: card.id,
+		starred: card.starred,
+		direction: 'front',
+		question: card.front
+	}))
+
+	const multipleChoiceQuestionsBack = cards.map<MultipleChoiceLearnItem>(card => ({
+		type: 'multiple-choice',
+		cardId: card.id,
+		starred: card.starred,
+		direction: 'back',
+		question: card.back,
+		choices: mcChoices(card, 'back'),
+	}))
+
+	const fillInTheBlankQuestionsBack = cards.map<FillInTheBlankLearnItem>(card => ({
+		type: 'fill-in-the-blank',
+		cardId: card.id,
+		starred: card.starred,
+		direction: 'back',
+		question: card.back
+	}))
+
+	return [
+		...multipleChoiceQuestionsFront,
+		...fillInTheBlankQuestionsFront,
+		...multipleChoiceQuestionsBack,
+		...fillInTheBlankQuestionsBack
+	].sort(() => Math.random() - 0.5)
 }
 
-export const updateCardRevision = async (username: string, setName: string, cardId: number, answer: 'correct' | 'incorrect') =>
+export const updateCardRevision = async (username: string, setName: string, cardId: number, correct: boolean) =>
 {
 	const setId = `(
 		SELECT id FROM sets
@@ -323,7 +411,7 @@ export const updateCardRevision = async (username: string, setName: string, card
 		END
 	)`
 
-	if (answer == 'correct')
+	if (correct)
 	{
 		const res = await pool.query(`
 			UPDATE cards
@@ -340,12 +428,60 @@ export const updateCardRevision = async (username: string, setName: string, card
 	{
 		const res = await pool.query(`
 			UPDATE cards
-				SET revision_level = revision_level - 1,
+				SET revision_level = CASE WHEN revision_level > 0 THEN revision_level - 1 ELSE 0 END,
 					times_revised = times_revised + 1
 				WHERE set_id = ${ setId }
 				AND id = $3;`,
 			[ username, setName, cardId ])
 
 		console.log(`[DB] Decremented revision level for card ${ cardId } in set ${ setName }`, res)
+	}
+}
+
+export const getDetailed = async (username: string, setName: string, cardId: number): Promise<DetailedCardOutput | null> =>
+{
+	const setId = `(
+		SELECT id FROM sets WHERE user_id = (
+			SELECT id FROM users WHERE username = $1
+		) AND name = $2
+	)`
+	const maxLastRevisionSub = `(
+		SELECT MAX(last_revision) FROM cards
+			WHERE set_id = ${ setId }
+	)`
+	const maxLastRevision = `(
+		SELECT
+			CASE WHEN ${ maxLastRevisionSub } IS NULL THEN 0
+			ELSE ${ maxLastRevisionSub }
+		END
+	)`
+	const numCardsInSet = `(
+		SELECT COUNT(*) FROM cards
+	)`
+	const factor = 0.3
+	const res = await pool.query(`
+		SELECT front, back, starred, times_revised,
+			( revision_level * EXP(-1 * (${ maxLastRevision } - last_revision)
+				/ (${ factor } * ${ numCardsInSet })) )
+			AS knowledge_level
+		FROM cards
+			WHERE set_id = ${ setId }
+			AND id = $3;`,
+		[ username, setName, cardId ])
+
+	console.log(`[DB] Got card ${ cardId }`, res.rows)
+
+	if (res.rowCount == 0)
+	{
+		return null
+	}
+
+	return {
+		id: cardId,
+		front: res.rows[0].front,
+		back: res.rows[0].back,
+		starred: res.rows[0].starred,
+		timesRevised: res.rows[0].times_revised,
+		knowledgeLevel: +res.rows[0].knowledge_level
 	}
 }

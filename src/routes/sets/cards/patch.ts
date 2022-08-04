@@ -23,7 +23,15 @@ interface ReorderRequestPayload
 	insertAtId: number
 }
 
-type RequestPayload = UpdateRequestPayload | ReorderRequestPayload
+interface SetStarredRequestPayload
+{
+	action: 'set-starred'
+	setName: string
+	cardId: number
+	starred: boolean
+}
+
+type RequestPayload = UpdateRequestPayload | ReorderRequestPayload | SetStarredRequestPayload
 
 const update = async (body: UpdateRequestPayload, username: string, res: ServerResponse) =>
 {
@@ -60,6 +68,23 @@ const reorder = async (body: ReorderRequestPayload, username: string, res: Serve
 	}
 
 	await repos.cards.reorder(username, body.setName, body.cardId, body.insertAtId)
+	res.end()
+}
+
+const setStarred = async (body: SetStarredRequestPayload, username: string, res: ServerResponse) =>
+{
+	if (body.setName == null || typeof body.setName != 'string'
+		|| body.cardId == null || typeof body.cardId != 'number')
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object with the following properties: "setName" (string), "cardIndex" (number).'
+		}))
+
+		return
+	}
+
+	await repos.cards.setStarred(username, body.setName, body.cardId, body.starred)
 	res.end()
 }
 
@@ -125,6 +150,10 @@ api.patch('/sets/cards', async (req, res) =>
 
 		case 'update':
 			await update(body, username, res)
+			return
+
+		case 'set-starred':
+			await setStarred(body, username, res)
 			return
 
 		default:
