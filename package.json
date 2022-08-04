@@ -5,8 +5,9 @@
 	"main": "index.js",
 	"keywords": [],
 	"scripts": {
-		"start": "npm i && tsc && node ./dist/index.js",
-		"dev": "npm i && tsc && nodemon -L -e ts --exec \"npm run build\" ./dist/index.js"
+		"build": "npm i && tsc",
+		"start": "npm run build && node ./dist/index.js",
+		"dev": "npm run build && nodemon -L -e ts --exec \"npm run build\" ./dist/index.js"
 	},
 	"author": "Iannis de Zwart",
 	"license": "ISC",
