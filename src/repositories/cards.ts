@@ -23,7 +23,7 @@ export const getAllForSet = async (username: string, setName: string): Promise<C
 		) AND name = $2
 	)`
 	const res = await pool.query(`
-		SELECT * FROM cards
+		SELECT id, front, back, starred FROM cards
 			WHERE set_id = ${ setId }
 			ORDER BY pos;`,
 		[ username, setName ])
