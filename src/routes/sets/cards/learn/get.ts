@@ -7,6 +7,10 @@ api.get('/sets/cards/learn', async (req, res) =>
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
 	const setName = req.headers['x-set-name'] as string
+	const frontToBackEnabled = req.headers['x-front-to-back-enabled'] as string
+	const backToFrontEnabled = req.headers['x-back-to-front-enabled'] as string
+	const mcQuestionsEnabled = req.headers['x-mc-questions-enabled'] as string
+	const openQuestionsEnabled = req.headers['x-open-questions-enabled'] as string
 
 	if (!authenticated(token))
 	{
@@ -30,7 +34,17 @@ api.get('/sets/cards/learn', async (req, res) =>
 		return
 	}
 
-	const data = await repos.cards.getCardsToLearn(username, setName, 10)
+	const NUM_CARDS = 10
+
+	const data = await repos.cards.getCardsToLearn({
+		username,
+		setName,
+		numCards: NUM_CARDS,
+		frontToBackEnabled: frontToBackEnabled == 'true',
+		backToFrontEnabled: backToFrontEnabled == 'true',
+		mcQuestionsEnabled: mcQuestionsEnabled == 'true',
+		openQuestionsEnabled: openQuestionsEnabled == 'true'
+	})
 
 	console.log(`${ username }: [ GET /sets/cards/learn ] (${ setName })`, data)
 	res.end(JSON.stringify(data))

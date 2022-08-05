@@ -7,6 +7,7 @@ api.get('/sets/cards', async (req, res) =>
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
 	const setName = req.headers['x-set-name'] as string
+	const cardId = req.headers['x-card-id'] as string
 
 	if (!authenticated(token))
 	{
@@ -30,13 +31,32 @@ api.get('/sets/cards', async (req, res) =>
 		return
 	}
 
-	const data = await repos.cards.getAllForSet(username, setName)
+	if (cardId == null)
+	{
+		const data = await repos.cards.getAllForSet(username, setName)
+
+		if (data == null)
+		{
+			res.statusCode = 404
+			res.end(JSON.stringify({
+				err: 'You don\'t have a set with that name.'
+			}))
+
+			return
+		}
+
+		console.log(`${ username }: [ GET /sets/cards ] (${ setName })`, data)
+		res.end(JSON.stringify(data))
+		return
+	}
+
+	const data = await repos.cards.getDetailed(username, setName, +cardId)
 
 	if (data == null)
 	{
 		res.statusCode = 404
 		res.end(JSON.stringify({
-			err: 'You don\'t have a set with that name.'
+			err: 'You don\'t have a card with that id.'
 		}))
 
 		return

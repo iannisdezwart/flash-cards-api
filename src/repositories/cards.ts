@@ -8,6 +8,12 @@ export interface CardOutput
 	starred: boolean
 }
 
+export interface DetailedCardOutput extends CardOutput
+{
+	knowledgeLevel: number
+	timesRevised: number
+}
+
 export interface CardInput
 {
 	front: string
@@ -36,10 +42,10 @@ export interface FillInTheBlankLearnItem
 
 export type LearnItem = MultipleChoiceLearnItem | FillInTheBlankLearnItem
 
-export interface DetailedCardOutput extends CardOutput
+export interface LearnDataOutput
 {
-	knowledgeLevel: number
-	timesRevised: number
+	items: LearnItem[]
+	numCards: number
 }
 
 export const getAllForSet = async (username: string, setName: string): Promise<CardOutput[]> =>
@@ -294,7 +300,18 @@ export const reorder = async (username: string, setName: string, cardId: number,
 	}
 }
 
-export const getCardsToLearn = async (username: string, setName: string, numCards: number): Promise<LearnItem[]> =>
+interface CardsToLearnRequest
+{
+	username: string
+	setName: string
+	numCards: number
+	frontToBackEnabled: boolean
+	backToFrontEnabled: boolean
+	mcQuestionsEnabled: boolean
+	openQuestionsEnabled: boolean
+}
+
+export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDataOutput> =>
 {
 	const setId = `(
 		SELECT id FROM sets
@@ -326,9 +343,9 @@ export const getCardsToLearn = async (username: string, setName: string, numCard
 			WHERE set_id = ${ setId }
 		ORDER BY knowledge_level ASC
 		LIMIT $3;`,
-		[ username, setName, numCards ])
+		[ req.username, req.setName, req.numCards ])
 
-	console.log(`[DB] Got ${ numCards } cards to learn from set ${ setName }`, res)
+	console.log(`[DB] Got ${ req.numCards } cards to learn from set ${ req.setName }`, res)
 
 	const cards = res.rows.map(row => ({
 		id: row.id as number,
@@ -383,12 +400,15 @@ export const getCardsToLearn = async (username: string, setName: string, numCard
 		question: card.back
 	}))
 
-	return [
-		...multipleChoiceQuestionsFront,
-		...fillInTheBlankQuestionsFront,
-		...multipleChoiceQuestionsBack,
-		...fillInTheBlankQuestionsBack
-	].sort(() => Math.random() - 0.5)
+	return {
+		items: [
+			...(req.mcQuestionsEnabled && req.frontToBackEnabled ? multipleChoiceQuestionsFront : []),
+			...(req.mcQuestionsEnabled && req.backToFrontEnabled ? multipleChoiceQuestionsBack : []),
+			...(req.openQuestionsEnabled && req.frontToBackEnabled ? fillInTheBlankQuestionsFront : []),
+			...(req.openQuestionsEnabled && req.backToFrontEnabled ? fillInTheBlankQuestionsBack : []),
+		].sort(() => Math.random() - 0.5),
+		numCards: cards.length
+	}
 }
 
 export const updateCardRevision = async (username: string, setName: string, cardId: number, correct: boolean) =>
