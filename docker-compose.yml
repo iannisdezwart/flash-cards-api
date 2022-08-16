@@ -16,6 +16,8 @@ services:
   db:
     container_name: flash_cards_db
     image: postgres
+    ports:
+      - "${DB_PORT}:5432"
     volumes:
       - data:/data/db
     environment:
