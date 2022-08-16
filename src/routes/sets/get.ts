@@ -7,6 +7,8 @@ api.get('/sets', async (req, res) =>
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
 	const setName = req.headers['x-set-name'] as string
+	const ofCollection = req.headers['x-of-collection'] as string
+	const fitsCollection = req.headers['x-fits-collection'] as string
 
 	if (!authenticated(token))
 	{
@@ -20,9 +22,19 @@ api.get('/sets', async (req, res) =>
 
 	const { username } = authenticated(token) as { username: string }
 
+	if (ofCollection != null && fitsCollection != null)
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Cannot specify both "X-Of-Collection" and "X-Fits-Collection".'
+		}))
+
+		return
+	}
+
 	if (setName == null)
 	{
-		const data = await repos.sets.getAllForUser(username)
+		const data = await repos.sets.getAllForUser({ username, ofCollection, fitsCollection })
 		res.end(JSON.stringify(data))
 		console.log(`${ username }: [ GET /sets ]`, data)
 		return

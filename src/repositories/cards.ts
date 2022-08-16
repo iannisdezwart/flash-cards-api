@@ -73,61 +73,36 @@ export const getAllForSet = async (username: string, setName: string): Promise<C
 
 export const add = async (username: string, setName: string, card: CardInput): Promise<{ cardId: number }> =>
 {
-	try
-	{
-		await pool.query(`BEGIN;`)
+	const nextPosSub = `(
+		SELECT MAX(c.pos) FROM cards c, sets s
+			WHERE c.set_id = s.id
+			AND s.user_id = (
+				SELECT id FROM users WHERE username = $1
+			)
+			AND s.name = $2
+	)`
+	const setId = `(
+		SELECT id FROM sets
+			WHERE user_id = (
+				SELECT id FROM users WHERE username = $1
+			)
+			AND name = $2
+	)`
+	const nextPos = `(
+		SELECT
+			CASE WHEN ${ nextPosSub } IS NULL THEN 0
+			ELSE (${ nextPosSub }) + 1
+		END
+	)`
+	const res = await pool.query(`
+		INSERT INTO cards (set_id, pos, front, back, starred)
+		VALUES (${ setId }, ${ nextPos }, $3, $4, $5)
+		RETURNING id;`,
+		[ username, setName, card.front, card.back, card.starred ])
 
-		const nextPosSub = `(
-			SELECT MAX(c.pos) FROM cards c, sets s
-				WHERE c.set_id = s.id
-				AND s.user_id = (
-					SELECT id FROM users WHERE username = $1
-				)
-				AND s.name = $2
-		)`
-		const setId = `(
-			SELECT id FROM sets
-				WHERE user_id = (
-					SELECT id FROM users WHERE username = $1
-				)
-				AND name = $2
-		)`
-		const nextPos = `(
-			SELECT
-				CASE WHEN ${ nextPosSub } IS NULL THEN 0
-				ELSE (${ nextPosSub }) + 1
-			END
-		)`
-		const res = await pool.query(`
-			INSERT INTO cards (set_id, pos, front, back, starred)
-			VALUES (${ setId }, ${ nextPos }, $3, $4, $5);`,
-			[ username, setName, card.front, card.back, card.starred ])
+	console.log(`[DB] Added card to set ${ setName }`, card, res)
 
-		console.log(`[DB] Added card to set ${ setName }`, card, res)
-
-		const newCardPos = `(
-			SELECT MAX(pos) FROM cards
-				WHERE set_id = ${ setId }
-		)`
-		const res1 = await pool.query(`
-			SELECT id FROM cards
-				WHERE set_id = ${ setId }
-				AND pos = ${ newCardPos };`,
-			[ username, setName ])
-
-		const newCardId = res1.rows[0].id
-
-		console.log(`[DB] Got new card id:`, res1)
-
-		await pool.query(`COMMIT;`)
-
-		return { cardId: newCardId }
-	}
-	catch (err)
-	{
-		await pool.query(`ROLLBACK;`)
-		throw err
-	}
+	return { cardId: res.rows[0].id as number }
 }
 
 export const remove = async (username: string, setName: string, cardId: number) =>
@@ -333,11 +308,10 @@ export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDa
 	const numCardsInSet = `(
 		SELECT COUNT(*) FROM cards
 	)`
-	const factor = 0.3
 	const res = await pool.query(`
 		SELECT id, front, back, starred, times_revised,
 				( revision_level * EXP(-1 * (${ maxLastRevision } - last_revision)
-					/ (${ factor } * ${ numCardsInSet })) )
+					/ (2.0 * ${ numCardsInSet })) )
 				AS knowledge_level
 		FROM cards
 			WHERE set_id = ${ setId }
@@ -436,7 +410,7 @@ export const updateCardRevision = async (username: string, setName: string, card
 		const res = await pool.query(`
 			UPDATE cards
 				SET last_revision = ${ nextLastRevisionCount },
-					revision_level = revision_level + 1,
+					revision_level = CASE WHEN revision_level < 10 THEN revision_level + 1 ELSE 10 END,
 					times_revised = times_revised + 1
 				WHERE set_id = ${ setId }
 				AND id = $3;`,
@@ -478,11 +452,10 @@ export const getDetailed = async (username: string, setName: string, cardId: num
 	const numCardsInSet = `(
 		SELECT COUNT(*) FROM cards
 	)`
-	const factor = 0.3
 	const res = await pool.query(`
 		SELECT front, back, starred, times_revised,
 			( revision_level * EXP(-1 * (${ maxLastRevision } - last_revision)
-				/ (${ factor } * ${ numCardsInSet })) )
+				/ (2.0 * ${ numCardsInSet })) )
 			AS knowledge_level
 		FROM cards
 			WHERE set_id = ${ setId }

@@ -34,6 +34,14 @@ const speak = (voiceName: string, text: string, res: ServerResponse) =>
 
 	synthesiser.speakTextAsync(text, async result =>
 	{
+		if (result.audioData == null)
+		{
+			console.error(`[TTS] Failed to synthesize speech`, result)
+			res.statusCode = 500
+			res.end()
+			return
+		}
+
 		res.end(Buffer.from(result.audioData))
 		synthesiser.close()
 	}, err =>

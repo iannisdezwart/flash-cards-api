@@ -43,15 +43,74 @@ export const get = async (username: string, setName: string): Promise<SetOutput 
 	}
 }
 
-export const getAllForUser = async (username: string): Promise<SetOutput[]> =>
+const getAllForUserOfCollection = async (username: string, collectionName: string) =>
 {
 	const res = await pool.query(`
-		SELECT id, name, locale_front, locale_back FROM sets
-			WHERE user_id = (
-				SELECT id FROM users WHERE username = $1
-			)
+		SELECT s.id, s.name, s.locale_front, s.locale_back
+		FROM sets s, collections c, users u, collections_sets x
+			WHERE u.id = c.user_id
+			AND u.id = s.user_id
+			AND c.id = x.collection_id
+			AND s.id = x.set_id
+			AND u.username = $1
+			AND c.name = $2
 			ORDER BY pos;`,
-		[ username ])
+		[ username, collectionName ])
+
+	console.log(`[DB] Got all sets for user ${ username } of collection ${ collectionName }`, res.rows)
+
+	return res.rows.map(row => ({
+		id: row.id,
+		name: row.name,
+		user: username,
+		localeFront: row.locale_front,
+		localeBack: row.locale_back
+	}))
+}
+
+const getAllForUserFitsCollection = async (username: string, collectionName: string) =>
+{
+	const res = await pool.query(`
+		SELECT s.pos, s.id, s.name, s.locale_front, s.locale_back
+		FROM sets s, collections c, users u
+			WHERE u.id = c.user_id
+			AND u.id = s.user_id
+			AND c.locale_front = s.locale_front
+			AND c.locale_back = s.locale_back
+			AND u.username = $1
+			AND c.name = $2
+		EXCEPT
+		SELECT s.pos, s.id, s.name, s.locale_front, s.locale_back
+		FROM sets s, collections c, users u, collections_sets x
+			WHERE u.id = c.user_id
+			AND u.id = s.user_id
+			AND x.set_id = s.id
+			AND x.collection_id = c.id
+			AND u.username = $1
+			AND c.name = $2
+		ORDER BY pos;`,
+		[ username, collectionName ])
+
+	console.log(`[DB] Got all sets for user ${ username } that fit collection ${ collectionName }`, res.rows)
+
+	return res.rows.map(row => ({
+		id: row.id,
+		name: row.name,
+		user: username,
+		localeFront: row.locale_front,
+		localeBack: row.locale_back
+	}))
+}
+
+const getAllForUserOfEverything = async (username: string) =>
+{
+	const res = await pool.query(`
+	SELECT id, name, locale_front, locale_back FROM sets
+		WHERE user_id = (
+			SELECT id FROM users WHERE username = $1
+		)
+		ORDER BY pos;`,
+	[ username ])
 
 	console.log(`[DB] Got all sets for user ${ username }`, res.rows)
 
@@ -59,6 +118,48 @@ export const getAllForUser = async (username: string): Promise<SetOutput[]> =>
 		id: row.id,
 		name: row.name,
 		user: username,
+		localeFront: row.locale_front,
+		localeBack: row.locale_back
+	}))
+}
+
+export const getAllForUser = async (req: { username: string, ofCollection?: string, fitsCollection?: string }): Promise<SetOutput[]> =>
+{
+	const { username, ofCollection, fitsCollection } = req
+
+	if (ofCollection != null)
+	{
+		return await getAllForUserOfCollection(username, ofCollection)
+	}
+
+	if (fitsCollection != null)
+	{
+		return await getAllForUserFitsCollection(username, fitsCollection)
+	}
+
+	return await getAllForUserOfEverything(username)
+}
+
+export const getAllInCollectionForUser = async (req: { username: string, collectionName: string }): Promise<SetOutput[]> =>
+{
+	const setId = `(
+		SELECT id FROM sets
+		WHERE username = $1
+	)`
+	const res = await pool.query(`
+		SELECT id, name, locale_front, locale_back
+		FROM sets s, collections c
+			WHERE s.id = c.set_id
+			AND c.user_id = ${ setId }
+			AND c.name = $2`,
+		[ req.username, req.collectionName ])
+
+	console.log(`[DB] Got all sets in collection ${ req.collectionName } for user ${ req.username }`, res.rows)
+
+	return res.rows.map(row => ({
+		id: row.id,
+		name: row.name,
+		user: req.username,
 		localeFront: row.locale_front,
 		localeBack: row.locale_back
 	}))

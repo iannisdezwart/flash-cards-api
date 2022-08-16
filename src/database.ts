@@ -98,6 +98,35 @@ const databaseMigrations: ((pool: Pool) => Promise<void>)[] = [
 
 		await pool.query(`UPDATE cards SET revision_level = 0 WHERE revision_level < 0;`)
 		await pool.query(`ALTER TABLE cards ADD CONSTRAINT revision_level_constraint CHECK (revision_level >= 0);`)
+	},
+	async (pool: Pool) =>
+	{
+		console.log('[DB] Running collections migration')
+
+		await pool.query(`CREATE TABLE IF NOT EXISTS collections (
+			id SERIAL PRIMARY KEY,
+			user_id INTEGER NOT NULL REFERENCES users(id),
+			name TEXT NOT NULL,
+			locale_front TEXT NOT NULL,
+			locale_back TEXT NOT NULL
+		)`)
+		await pool.query(`CREATE INDEX IF NOT EXISTS collections_user_id_index ON collections(user_id);`)
+		await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS collections_unique_index ON collections(user_id, name);`)
+
+		await pool.query(`CREATE TABLE IF NOT EXISTS collections_sets (
+			collection_id INTEGER NOT NULL REFERENCES collections(id),
+			set_id INTEGER NOT NULL REFERENCES sets(id),
+			PRIMARY KEY (collection_id, set_id)
+		)`)
+		await pool.query(`CREATE INDEX IF NOT EXISTS collections_sets_collection_id_index ON collections_sets(collection_id);`)
+		await pool.query(`CREATE INDEX IF NOT EXISTS collections_sets_set_id_index ON collections_sets(set_id);`)
+	},
+	async (pool: Pool) =>
+	{
+		console.log('[DB] Running card learning revision level cap check migration')
+
+		await pool.query(`UPDATE cards SET revision_level = 10 WHERE revision_level > 10;`)
+		await pool.query(`ALTER TABLE cards ADD CONSTRAINT revision_level_constraint_2 CHECK (revision_level <= 10);`)
 	}
 ]
 
