@@ -10,7 +10,14 @@ interface ReorderRequestPayload
 	newIndex: number
 }
 
-type RequestPayload = ReorderRequestPayload
+interface RenameRequestPayload
+{
+	action: 'rename'
+	oldSetName: string
+	newSetName: string
+}
+
+type RequestPayload = ReorderRequestPayload | RenameRequestPayload
 
 const reorder = async (req: ReorderRequestPayload, username: string, res: ServerResponse) =>
 {
@@ -24,6 +31,23 @@ const reorder = async (req: ReorderRequestPayload, username: string, res: Server
 	}
 
 	await repos.sets.reorder(username, req.oldIndex, req.newIndex)
+	res.end()
+
+	console.log(`${ username }: [ PATCH /sets ]`, req)
+}
+
+const rename = async (req: RenameRequestPayload, username: string, res: ServerResponse) =>
+{
+	if (req.oldSetName == null || typeof req.oldSetName != 'string'
+		|| req.newSetName == null || typeof req.newSetName != 'string')
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object with the following properties: "oldSetName" (string), "newSetName" (string).'
+		}))
+	}
+
+	await repos.sets.rename(username, req.oldSetName, req.newSetName)
 	res.end()
 
 	console.log(`${ username }: [ PATCH /sets ]`, req)
@@ -76,6 +100,10 @@ api.patch('/sets', async (req, res) =>
 	{
 		case 'reorder':
 			reorder(body, username, res)
+			return
+
+		case 'rename':
+			rename(body, username, res)
 			return
 
 		default:
