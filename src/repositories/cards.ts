@@ -84,10 +84,10 @@ export const getAllForCollection = async (username: string, collectionName: stri
 		) AND name = $2
 	)`
 	const res = await pool.query(`
-		SELECT c.id, c.front, c.back, c.starred, s.name as set_name FROM cards c, collections_cards x, sets s
-			WHERE c.id = x.card_id
+		SELECT c.id, c.front, c.back, c.starred, s.name as set_name FROM cards c, collections_sets x, sets s
+			WHERE c.set_id = s.id
+			AND x.set_id = s.id
 			AND x.collection_id = ${ collectionId }
-			AND c.set_id = s.id
 			ORDER BY s.name, c.pos;`,
 		[ username, collectionName ])
 
