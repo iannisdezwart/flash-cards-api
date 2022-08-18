@@ -136,3 +136,20 @@ export const removeSet = async (req: { username: string, setName: string, collec
 
 	console.log(`[DB] Removed set ${ setName } from collection ${ collectionName } for ${ username }`, res.rows)
 }
+
+export const rename = async (req: { username: string, oldCollectionName: string, newCollectionName: string }) =>
+{
+	const { username, oldCollectionName, newCollectionName } = req
+
+	const userId = `(
+		SELECT id FROM users WHERE username = $1
+	)`
+	const res = await pool.query(`
+		UPDATE collections
+			SET name = $3
+			WHERE name = $2
+			AND user_id = ${ userId };`,
+		[ username, oldCollectionName, newCollectionName ])
+
+	console.log(`[DB] Renamed collection ${ oldCollectionName } to ${ newCollectionName } for ${ username }`, res.rows)
+}

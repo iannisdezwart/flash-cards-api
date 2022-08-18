@@ -17,7 +17,14 @@ interface RemoveSetRequestPayload
 	collectionName: string
 }
 
-type RequestPayload = AddSetRequestPayload | RemoveSetRequestPayload
+interface RenameRequestPayload
+{
+	action: 'rename'
+	oldCollectionName: string
+	newCollectionName: string
+}
+
+type RequestPayload = AddSetRequestPayload | RemoveSetRequestPayload | RenameRequestPayload
 
 const addSet = async (body: AddSetRequestPayload, username: string, res: ServerResponse) =>
 {
@@ -55,6 +62,27 @@ const deleteSet = async (body: RemoveSetRequestPayload, username: string, res: S
 		username,
 		setName: body.setName,
 		collectionName: body.collectionName
+	})
+	res.end()
+}
+
+const rename = async (body: RenameRequestPayload, username: string, res: ServerResponse) =>
+{
+	if (body.oldCollectionName == null || typeof body.oldCollectionName != 'string'
+		|| body.newCollectionName == null || typeof body.newCollectionName != 'string')
+	{
+		res.statusCode = 400
+		res.end(JSON.stringify({
+			err: 'Invalid request body. Expected a JSON object with the following properties: "oldCollectionName" (string), "newCollectionName" (string).'
+		}))
+
+		return
+	}
+
+	await repos.collections.rename({
+		username,
+		oldCollectionName: body.oldCollectionName,
+		newCollectionName: body.newCollectionName
 	})
 	res.end()
 }
@@ -111,6 +139,10 @@ api.patch('/collections', async (req, res) =>
 
 		case 'delete-set':
 			await deleteSet(body, username, res)
+			return
+
+		case 'rename':
+			await rename(body, username, res)
 			return
 
 		default:

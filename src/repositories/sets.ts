@@ -323,17 +323,14 @@ export const reorder = async (username: string, oldSetIndex: number, newSetIndex
 
 export const rename = async (username: string, oldSetName: string, newSetName: string) =>
 {
-	const setId = `(
-		SELECT s.id
-		FROM sets s, users u
-			WHERE s.user_id = u.id
-			AND u.username = $1
-			AND s.name = $2
+	const userId = `(
+		SELECT id FROM users WHERE username = $1
 	)`
 	const res = await pool.query(`
 		UPDATE sets
 			SET name = $3
-		WHERE id = ${ setId };`,
+			WHERE name = $2
+			AND user_id = ${ userId };`,
 		[ username, oldSetName, newSetName ])
 
 	console.log(`[DB] Renamed set ${ oldSetName } to ${ newSetName }`, res)
