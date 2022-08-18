@@ -8,7 +8,12 @@ export interface CardOutput
 	starred: boolean
 }
 
-export interface DetailedCardOutput extends CardOutput
+export interface CardOutputWithSetName extends CardOutput
+{
+	setName: string
+}
+
+export interface DetailedCardOutput extends CardOutputWithSetName
 {
 	knowledgeLevel: number
 	timesRevised: number
@@ -48,7 +53,7 @@ export interface LearnDataOutput
 	numCards: number
 }
 
-export const getAllForSet = async (username: string, setName: string): Promise<CardOutput[]> =>
+export const getAllForSet = async (username: string, setName: string) =>
 {
 	const setId = `(
 		SELECT id FROM sets WHERE user_id = (
@@ -63,11 +68,37 @@ export const getAllForSet = async (username: string, setName: string): Promise<C
 
 	console.log(`[DB] Got all cards for set ${ setName }:`, res)
 
-	return res.rows.map(row => ({
+	return res.rows.map<CardOutput>(row => ({
 		id: row.id,
 		front: row.front,
 		back: row.back,
 		starred: row.starred
+	}))
+}
+
+export const getAllForCollection = async (username: string, collectionName: string) =>
+{
+	const collectionId = `(
+		SELECT id FROM collections WHERE user_id = (
+			SELECT id FROM users WHERE username = $1
+		) AND name = $2
+	)`
+	const res = await pool.query(`
+		SELECT c.id, c.front, c.back, c.starred, s.name as set_name FROM cards c, collections_cards x, sets s
+			WHERE c.id = x.card_id
+			AND x.collection_id = ${ collectionId }
+			AND c.set_id = s.id
+			ORDER BY s.name, c.pos;`,
+		[ username, collectionName ])
+
+	console.log(`[DB] Got all cards for collection ${ collectionName }:`, res)
+
+	return res.rows.map<CardOutputWithSetName>(row => ({
+		id: row.id,
+		front: row.front,
+		back: row.back,
+		starred: row.starred,
+		setName: row.set_name
 	}))
 }
 
@@ -278,7 +309,8 @@ export const reorder = async (username: string, setName: string, cardId: number,
 interface CardsToLearnRequest
 {
 	username: string
-	setName: string
+	setName?: string
+	collectionName?: string
 	numCards: number
 	frontToBackEnabled: boolean
 	backToFrontEnabled: boolean
@@ -286,7 +318,17 @@ interface CardsToLearnRequest
 	openQuestionsEnabled: boolean
 }
 
-export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDataOutput> =>
+interface CardsToLearnFromSetRequest extends CardsToLearnRequest
+{
+	setName: string
+}
+
+interface CardsToLearnFromCollectionRequest extends CardsToLearnRequest
+{
+	collectionName: string
+}
+
+const getCardsToLearnFromSet = async (req: CardsToLearnFromSetRequest) =>
 {
 	const setId = `(
 		SELECT id FROM sets
@@ -321,14 +363,50 @@ export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDa
 
 	console.log(`[DB] Got ${ req.numCards } cards to learn from set ${ req.setName }`, res)
 
-	const cards = res.rows.map(row => ({
+	return res.rows.map(row => ({
 		id: row.id as number,
 		front: row.front as string,
 		back: row.back as string,
 		starred: row.starred as boolean,
 		timesRevised: row.times_revised as number,
 		knowledgeLevel: +row.knowledge_level as number,
+		setName: req.setName
 	}))
+}
+
+const getCardsToLearnFromCollection = async (req: CardsToLearnFromCollectionRequest) =>
+{
+	const res = await pool.query(`
+		SELECT s.name
+		FROM sets s, users u, collections c, collections_sets x
+			WHERE c.user_id = u.id
+			AND c.id = x.collection_id
+			AND x.set_id = s.id
+			AND u.username = $1
+			AND c.name = $2;`,
+		[ req.username, req.collectionName ])
+
+	const setNames = res.rows.map(row => row.name as string)
+
+	return (await Promise.all(setNames.map(setName => getCardsToLearnFromSet({
+		username: req.username,
+		setName,
+		numCards: req.numCards,
+		frontToBackEnabled: req.frontToBackEnabled,
+		backToFrontEnabled: req.backToFrontEnabled,
+		mcQuestionsEnabled: req.mcQuestionsEnabled,
+		openQuestionsEnabled: req.openQuestionsEnabled,
+	}))))
+		.reduce((acc, curr) => acc.concat(curr), [])
+		.sort((a, b) => a.knowledgeLevel - b.knowledgeLevel)
+		.slice(0, req.numCards)
+}
+
+export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDataOutput> =>
+{
+	const cards = req.setName != null
+		? await getCardsToLearnFromSet(req as CardsToLearnFromSetRequest)
+		: await getCardsToLearnFromCollection(req as CardsToLearnFromCollectionRequest)
 
 	const otherMcChoices = (id: number, direction: 'front' | 'back') => cards
 		.filter(card => card.id != id)
@@ -343,6 +421,7 @@ export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDa
 	const multipleChoiceQuestionsFront = cards.map<MultipleChoiceLearnItem>(card => ({
 		type: 'multiple-choice',
 		cardId: card.id,
+		setName: card.setName,
 		starred: card.starred,
 		direction: 'front',
 		question: card.front,
@@ -352,6 +431,7 @@ export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDa
 	const fillInTheBlankQuestionsFront = cards.map<FillInTheBlankLearnItem>(card => ({
 		type: 'fill-in-the-blank',
 		cardId: card.id,
+		setName: card.setName,
 		starred: card.starred,
 		direction: 'front',
 		question: card.front
@@ -360,6 +440,7 @@ export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDa
 	const multipleChoiceQuestionsBack = cards.map<MultipleChoiceLearnItem>(card => ({
 		type: 'multiple-choice',
 		cardId: card.id,
+		setName: card.setName,
 		starred: card.starred,
 		direction: 'back',
 		question: card.back,
@@ -369,6 +450,7 @@ export const getCardsToLearn = async (req: CardsToLearnRequest): Promise<LearnDa
 	const fillInTheBlankQuestionsBack = cards.map<FillInTheBlankLearnItem>(card => ({
 		type: 'fill-in-the-blank',
 		cardId: card.id,
+		setName: card.setName,
 		starred: card.starred,
 		direction: 'back',
 		question: card.back
@@ -471,6 +553,7 @@ export const getDetailed = async (username: string, setName: string, cardId: num
 
 	return {
 		id: cardId,
+		setName: res.rows[0].set_name,
 		front: res.rows[0].front,
 		back: res.rows[0].back,
 		starred: res.rows[0].starred,

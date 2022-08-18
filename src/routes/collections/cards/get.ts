@@ -1,8 +1,8 @@
 import { authenticated } from '@iannisz/node-api-kit'
-import { api } from '../../api'
-import repos from '../../repositories'
+import { api } from '../../../api'
+import repos from '../../../repositories'
 
-api.get('/collections', async (req, res) =>
+api.get('/collections/cards', async (req, res) =>
 {
 	res.setHeader('Access-Control-Allow-Origin', '*')
 	const token = req.headers.authorization as string
@@ -20,15 +20,17 @@ api.get('/collections', async (req, res) =>
 
 	const { username } = authenticated(token) as { username: string }
 
-	if (collectionName == null)
+	if (await repos.collections.get({ username, collectionName }) == null)
 	{
-		const data = await repos.collections.getAllForUser(username)
-		res.end(JSON.stringify(data))
-		console.log(`${ username }: [ GET /collections ]`, data)
+		res.statusCode = 403
+		res.end(JSON.stringify({
+			err: 'You don\'t have a collection with that name.'
+		}))
+
 		return
 	}
 
-	const data = await repos.collections.get({ username, collectionName })
+	const data = await repos.cards.getAllForCollection(username, collectionName)
 
 	if (data == null)
 	{
@@ -40,6 +42,7 @@ api.get('/collections', async (req, res) =>
 		return
 	}
 
-	console.log(`${ username }: [ GET /collections ] (${ collectionName })`, data)
+	console.log(`${ username }: [ GET /collections/cards ] (${ collectionName })`, data)
 	res.end(JSON.stringify(data))
+	return
 })
