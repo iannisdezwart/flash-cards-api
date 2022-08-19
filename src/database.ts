@@ -114,8 +114,8 @@ const databaseMigrations: ((pool: Pool) => Promise<void>)[] = [
 		await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS collections_unique_index ON collections(user_id, name);`)
 
 		await pool.query(`CREATE TABLE IF NOT EXISTS collections_sets (
-			collection_id INTEGER NOT NULL REFERENCES collections(id),
-			set_id INTEGER NOT NULL REFERENCES sets(id),
+			collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+			set_id INTEGER NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
 			PRIMARY KEY (collection_id, set_id)
 		)`)
 		await pool.query(`CREATE INDEX IF NOT EXISTS collections_sets_collection_id_index ON collections_sets(collection_id);`)
