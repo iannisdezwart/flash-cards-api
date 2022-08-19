@@ -46,6 +46,11 @@ interface DictionaryResponse
 	translations: DictionaryTranslation[]
 }
 
+const capitalise = (text: string) =>
+{
+	return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 const fallbackTranslate = (req: { text: string, from: string, to: string }, res: ServerResponse) =>
 {
 	const { text, from, to } = req
@@ -83,7 +88,7 @@ const fallbackTranslate = (req: { text: string, from: string, to: string }, res:
 			}
 
 			console.log(`[TRANSLATION] Found ${ translations.length } translations for "${ text }"`, translations)
-			res.end(JSON.stringify(translations.map(translation => translation.text)))
+			res.end(JSON.stringify(translations.map(translation => capitalise(translation.text))))
 		})
 }
 
@@ -126,7 +131,7 @@ const translate = (req: { text: string, from: string, to: string }, res: ServerR
 			if (translations.length != 0)
 			{
 				console.log(`[TRANSLATION] Found ${ translations.length } translations for "${ text }"`, translations)
-				res.end(JSON.stringify(translations.map(translation => translation.displayTarget)))
+				res.end(JSON.stringify(translations.map(translation => capitalise(translation.displayTarget))))
 
 				return
 			}
