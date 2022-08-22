@@ -38,16 +38,31 @@ const levenshteinDistance = (str1: string, str2: string) =>
 	return dp[str2.length][str1.length]
 }
 
+/**
+ * Removes text within `[` and `]` from the given text and trims the result.
+ * Example: `[hello]` -> ``
+ * Example: `hello` -> `hello`
+ * Example: `hello [world]` -> `hello`
+ * Example: `[hello] world` -> `world`
+ * Example: `[hello] world [bye world]` -> `world`
+ */
+const removeComments = (text: string) =>
+{
+	return text.replace(/\[.*?\]/g, '').trim()
+}
+
 export const answerIsCorrect = (givenAnswer: string, correctAnswer: string) =>
 {
-	const correctAnswers = correctAnswer.split('/').map(s => s.toLowerCase().trim())
-	const givenAnswers = givenAnswer.split('/').map(s => s.toLowerCase().trim())
+	const correctAnswers = correctAnswer.split('/').map(s => removeComments(s.toLowerCase()))
+	const givenAnswers = givenAnswer.split('/').map(s => removeComments(s.toLowerCase()))
 
 	for (const givenAnswer of givenAnswers)
 	{
 		for (const correctAnswer of correctAnswers)
 		{
-			if (levenshteinDistance(givenAnswer, correctAnswer) <= 2)
+			const maxErrors = Math.ceil(Math.min(3, givenAnswer.length / 4))
+
+			if (levenshteinDistance(givenAnswer, correctAnswer) <= maxErrors)
 			{
 				return true
 			}
