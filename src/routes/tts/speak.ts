@@ -59,7 +59,12 @@ api.get('/tts/speak', async (req, res) =>
 	const url = new URL(req.url || '', 'http://localhost')
 	const locale = url.searchParams.get('locale')
 	const text = url.searchParams.get('text')
-	const gender = url.searchParams.get('gender') || 'male'
+	let gender = url.searchParams.get('gender') || 'male'
+
+	if (gender == 'random')
+	{
+		gender = (Math.random() < 0.5) ? 'male' : 'female'
+	}
 
 	if (locale == null || text == null)
 	{
@@ -75,7 +80,7 @@ api.get('/tts/speak', async (req, res) =>
 	{
 		res.statusCode = 400
 		res.end(JSON.stringify({
-			err: 'Please provide a "gender" search parameter with the value of "male" or "female", or leave it empty.'
+			err: 'Please provide a "gender" search parameter with the value of "male", "female" or "random", or leave it empty.'
 		}))
 
 		return
